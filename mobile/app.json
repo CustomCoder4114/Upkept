@@ -19,9 +19,11 @@
     "android": {
       "package": "app.upkept",
       "permissions": [
-        "CAMERA",
-        "USE_BIOMETRIC",
-        "POST_NOTIFICATIONS"
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_FINGERPRINT"
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
@@ -63,8 +65,14 @@
     },
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+        "projectId": "64432686-4d1e-4a5c-b0a9-f08fba0806a6"
+      },
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
       }
-    }
+    },
+    "owner": "forson1"
   }
 }
