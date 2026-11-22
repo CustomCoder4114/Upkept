@@ -1,0 +1,43 @@
+{
+  "country": "KE",
+  "item": "passport",
+  "title": "Renew a Kenyan passport",
+  "summary": "Apply and pay on eCitizen, then give your fingerprints and photo at a passport centre (or a Kenyan embassy if you live abroad).",
+  "official_url": "https://immigration.go.ke/passport-section/",
+  "sources": [
+    {"title": "Directorate of Immigration Services: Passport section", "url": "https://immigration.go.ke/passport-section/", "official": true},
+    {"title": "eCitizen: Directorate of Immigration Services", "url": "https://dis.ecitizen.go.ke/", "official": true},
+    {"title": "Kenya Embassy Bangkok: passport requirements", "url": "https://kenyaembassybangkok.mfa.go.ke/node/20", "official": true},
+    {"title": "Kenya High Commission Ottawa: e-passport information", "url": "https://kenyahighcommission.ca/services/e-passport-info", "official": true},
+    {"title": "The Kenya Times: 50-page booklet option disabled (Feb 2026)", "url": "https://thekenyatimes.com/lifestyle/immigration/kenyans-forced-to-pay-ksh-12500-passport-fee-after-govt-disables-50-page-booklet-option/", "official": false}
+  ],
+  "last_checked": "2026-11-22",
+  "cost": {
+    "amount": null,
+    "currency": "KES",
+    "note": "Depends on the booklet the eCitizen form offers you. Embassy pages list KES 4,550 to 7,550, but in 2026 many applicants were only offered the 66-page booklet at about KES 12,500. Pay the amount on your eCitizen invoice.",
+    "verified": false
+  },
+  "processing_time": "Several weeks. Some embassies abroad quote 4 to 6 weeks.",
+  "renew_before_days": 180,
+  "documents_needed": [
+    "Your current passport (even if expired), plus a copy of the photo page",
+    "Original national ID and a copy (18 and over)",
+    "Copy of your birth certificate",
+    "Passport photos that meet the immigration rules",
+    "The application form and payment receipts printed from eCitizen"
+  ],
+  "steps": [
+    {"id": "log-in", "title": "Log in to eCitizen", "detail": "Open eCitizen and choose the Directorate of Immigration Services."},
+    {"id": "apply", "title": "Start a passport application", "detail": "Choose the passport type and select renewal or replacement as the reason. Fill in the form."},
+    {"id": "pay", "title": "Pay the fee", "detail": "Pay the amount shown on your invoice. Keep both receipts."},
+    {"id": "book", "title": "Book a biometrics appointment", "detail": "Pick a passport processing centre, or your nearest Kenyan embassy if you live abroad."},
+    {"id": "attend", "title": "Go to your appointment", "detail": "Bring the documents listed above. Your fingerprints and photo are taken there."},
+    {"id": "collect", "title": "Track and collect", "detail": "Track the status on eCitizen and collect the passport when it's ready. Then snap it into Upkept."}
+  ],
+  "tips": [
+    "Kenyan embassies advise applying at least six months before your passport expires.",
+    "Many countries refuse entry if your passport has less than 6 months left, so check your next trip first.",
+    "Only apply through eCitizen. Paper applications are not accepted."
+  ]
+}

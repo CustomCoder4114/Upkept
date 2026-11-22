@@ -1,0 +1,39 @@
+{
+  "country": "KE",
+  "item": "driving_licence",
+  "title": "Renew a Kenyan driving licence",
+  "summary": "Smart driving licences are renewed online through NTSA on eCitizen. If you still have the old red booklet, apply for a smart licence first.",
+  "official_url": "https://ntsa.go.ke/",
+  "sources": [
+    {"title": "National Transport and Safety Authority (NTSA)", "url": "https://ntsa.go.ke/", "official": true},
+    {"title": "eCitizen", "url": "https://www.ecitizen.go.ke/", "official": true},
+    {"title": "The Star: smart DL biometrics at 15 Huduma Centres (Sep 2025)", "url": "https://www.the-star.co.ke/news/2025-09-14-biometric-smart-dl-now-at-15-huduma-centres", "official": false},
+    {"title": "TechCabal: how to renew a driving licence online", "url": "https://techcabal.com/2025/03/17/renew-driving-license/", "official": false},
+    {"title": "The Star: eCitizen payment problems with licence renewals (Apr 2026)", "url": "https://www.the-star.co.ke/business/kenya/2026-04-08-motorists-frustrated-as-drivers-licence-renewal-hitch-persists", "official": false}
+  ],
+  "last_checked": "2026-11-22",
+  "cost": {
+    "amount": null,
+    "currency": "KES",
+    "note": "Reports from 2025 put a 3-year smart licence at about KES 3,050; older articles quote lower amounts. Pay the amount on your invoice.",
+    "verified": false
+  },
+  "processing_time": "The card usually takes about a week. Your payment slip shows the renewal while you wait.",
+  "renew_before_days": 30,
+  "documents_needed": [
+    "Your eCitizen login (national ID number and password)",
+    "Your current smart driving licence details",
+    "M-Pesa or a card to pay"
+  ],
+  "steps": [
+    {"id": "log-in", "title": "Log in to eCitizen", "detail": "Open eCitizen and choose the National Transport and Safety Authority."},
+    {"id": "renew", "title": "Open driving licence renewal", "detail": "Go to the driving licence section and choose Renewal."},
+    {"id": "period", "title": "Choose how long", "detail": "Pick the renewal period. The fee for that period is shown before you pay."},
+    {"id": "pay", "title": "Pay and save the slip", "detail": "Pay the invoice and download the acknowledgement slip. Keep it in the car until the new card arrives."},
+    {"id": "collect", "title": "Biometrics or collection, if asked", "detail": "Some renewals need fingerprints or collection at an NTSA office or Huduma Centre. The portal tells you. Then snap the new licence into Upkept."}
+  ],
+  "tips": [
+    "Only smart driving licences can be renewed online. Old red booklets must be upgraded first.",
+    "In 2026 some payments on eCitizen failed to trigger the M-Pesa prompt. If that happens, check the invoice status before paying again."
+  ]
+}

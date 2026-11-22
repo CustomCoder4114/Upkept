@@ -1,0 +1,36 @@
+{
+  "_about": "How long a passport must stay valid to enter each country. 'verified' is true only after checking the destination's official government page. Unverified rules still run, but the app shows 'Confirm on the official site'. Countries not listed use 'default' (unknown), which never gives a hard 'Not ready' on a guess.",
+  "default": {
+    "rule": "unknown",
+    "verified": false
+  },
+  "rules": {
+    "GB": {
+      "rule": "duration_of_stay",
+      "verified": false,
+      "source_url": "https://www.davidsonmorris.com/travelling-to-the-uk/",
+      "last_checked": "2026-11-22"
+    },
+    "US": {
+      "rule": "months_after_departure",
+      "months": 6,
+      "verified": false,
+      "source_url": "https://blog.remitly.com/en-gb/travel/passport-validity",
+      "last_checked": "2026-11-22"
+    },
+    "TH": {
+      "rule": "months_after_arrival",
+      "months": 6,
+      "verified": false,
+      "source_url": "https://allcleartravel.co.uk/blog/passport-rules-is-your-passport-still-valid-for-travel",
+      "last_checked": "2026-11-22"
+    },
+    "AG": {
+      "rule": "months_after_arrival",
+      "months": 6,
+      "verified": true,
+      "source_url": "https://gov.uk/foreign-travel-advice/antigua-and-barbuda/entry-requirements",
+      "last_checked": "2026-11-22"
+    }
+  }
+}

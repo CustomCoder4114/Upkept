@@ -1,0 +1,5 @@
+{
+  "name": "upkept",
+  "private": true,
+  "workspaces": ["packages/*", "web", "mobile"]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@upkept/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "setup": "npm install next react react-dom && npm install -D typescript @types/react @types/node",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@upkept/api-client": "*"
+  }
+}

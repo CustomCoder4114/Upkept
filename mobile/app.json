@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "Upkept",
+    "slug": "upkept",
+    "scheme": "upkept",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "app.upkept",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Upkept uses the camera to snap your documents so it can read their dates.",
+        "NSFaceIDUsageDescription": "Upkept uses Face ID to keep your documents locked.",
+        "NSPhotoLibraryUsageDescription": "Choose a photo of a document to add it to Upkept."
+      }
+    },
+    "android": {
+      "package": "app.upkept",
+      "permissions": [
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Upkept uses the camera to snap your documents so it can read their dates."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Upkept uses Face ID to keep your documents locked."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#12664F"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a photo of a document to add it to Upkept."
+        }
+      ],
+      "expo-status-bar",
+      "expo-splash-screen"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
