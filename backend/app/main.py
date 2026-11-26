@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, documents, guides, items, money, profiles, reminders, scan, travel
+from app.routers import (accounts, auth, documents, guides, home, items, money, overviews, planner, profiles, reminders, scan,
+                         travel)
 
 settings = get_settings()
 
@@ -21,7 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (auth, profiles, items, documents, scan, reminders, guides, travel, money):
+for r in (auth, accounts, profiles, items, home, planner, overviews, documents, scan, reminders, guides, travel, money):
     app.include_router(r.router)
 
 

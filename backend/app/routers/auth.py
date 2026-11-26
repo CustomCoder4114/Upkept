@@ -7,7 +7,7 @@ from app.core.security import (create_access_token, create_refresh_token, decode
 from app.database import get_db
 from app.deps import current_user
 from app.models import Document, Profile, User
-from app.schemas import LoginIn, RefreshIn, RegisterIn, TokensOut, UserOut
+from app.schemas import LoginIn, RefreshIn, RegisterIn, TokensOut, UserOut, UserPatch
 from app.services import storage
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -52,6 +52,14 @@ def refresh(body: RefreshIn, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(current_user)):
+    return user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(body: UserPatch, user: User = Depends(current_user)):
+    """Name, time zone and morning summary settings."""
+    for k, v in body.model_dump(exclude_unset=True).items():
+        setattr(user, k, v)
     return user
 
 

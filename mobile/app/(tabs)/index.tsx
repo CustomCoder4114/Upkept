@@ -4,11 +4,14 @@ import { router } from "expo-router";
 import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useMe, useProfiles, useReminders, useTimeline, useTrips } from "../../src/api/hooks";
+import { useState } from "react";
+
+import { useCalendar, useMe, useProfiles, useReminders, useTimeline } from "../../src/api/hooks";
+import { MonthCalendar, monthKey } from "../../src/components/MonthCalendar";
 import { ItemCard, ItemRow } from "../../src/components/ItemCard";
 import { ScoreRing } from "../../src/components/ScoreRing";
 import { Card, Chip, CircleButton, ErrorNote, Loading, SectionLabel } from "../../src/components/ui";
-import { COUNTRY_NAMES, greeting } from "../../src/lib/format";
+import { greeting, longDate } from "../../src/lib/format";
 import { useApp } from "../../src/store";
 import { colors } from "../../src/theme/colors";
 import { radius, space } from "../../src/theme/spacing";
@@ -20,14 +23,16 @@ export default function TimelineScreen() {
   const profiles = useProfiles();
   const timeline = useTimeline(profileFilter === "all" ? undefined : profileFilter);
   const reminders = useReminders();
-  const trips = useTrips();
+  const [view, setView] = useState<"list" | "calendar">("list");
+  const [month, setMonth] = useState(monthKey(new Date()));
+  const [day, setDay] = useState<string | null>(null);
+  const cal = useCalendar(month, profileFilter === "all" ? undefined : profileFilter);
 
   const nameOf = (profileId: string) => {
     if (profileFilter !== "all") return undefined;
     const p = profiles.data?.find((x) => x.id === profileId);
     return p && p.relation !== "self" ? p.name : undefined;
   };
-  const nextTrip = trips.data?.find((t) => Date.parse(t.ends_on) >= Date.now());
   const t = timeline.data;
   const needsCount = t?.needs_you.length ?? 0;
 
@@ -60,28 +65,62 @@ export default function TimelineScreen() {
               </ScrollView>
             ) : null}
 
+            <View style={{ flexDirection: "row", backgroundColor: "#E9E6DF", borderRadius: radius.pill, padding: 4, marginTop: space.lg }}>
+              {(["list", "calendar"] as const).map((v) => (
+                <Pressable key={v} onPress={() => setView(v)} accessibilityRole="button" accessibilityState={{ selected: view === v }}
+                  style={{ flex: 1, height: 40, borderRadius: radius.pill, alignItems: "center", justifyContent: "center",
+                    backgroundColor: view === v ? colors.card : "transparent" }}>
+                  <Text style={[type.h3, { fontSize: 14 }]}>{v === "list" ? "List" : "Calendar"}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {view === "calendar" ? (
+              <View style={{ marginTop: space.lg }}>
+                <MonthCalendar month={month} days={cal.data?.days ?? {}} selected={day}
+                  onSelect={setDay} onMonth={(m) => { setMonth(m); setDay(null); }} />
+                {cal.error ? <View style={{ marginTop: space.md }}><ErrorNote error={cal.error} /></View> : null}
+                {day ? (
+                  <>
+                    <SectionLabel>{longDate(day)}</SectionLabel>
+                    {(cal.data?.days[day] ?? []).length ? (
+                      <Card style={{ padding: 0 }}>
+                        {(cal.data?.days[day] ?? []).map((e, idx, arr) => (
+                          <Pressable key={`${e.item_id}-${idx}`} onPress={() => router.push(`/item/${e.item_id}`)}
+                            style={{ flexDirection: "row", alignItems: "center", padding: space.lg,
+                              borderBottomWidth: idx === arr.length - 1 ? 0 : 1, borderBottomColor: colors.border }}>
+                            <Text style={[type.h3, { flex: 1 }]}>{e.title}</Text>
+                            <Text style={type.small}>{e.type === "charge" ? "Charges" : "Ends"}</Text>
+                          </Pressable>
+                        ))}
+                      </Card>
+                    ) : <Text style={type.small}>Nothing due this day.</Text>}
+                  </>
+                ) : <Text style={[type.small, { marginTop: space.md }]}>Tap a day to see what's due.</Text>}
+              </View>
+            ) : null}
+
+            {view === "list" ? (<>
             <SectionLabel>Needs you</SectionLabel>
             {t.needs_you.length ? t.needs_you.map((i) => <ItemCard key={i.id} item={i} ownerName={nameOf(i.profile_id)} />) : (
               <Card style={{ padding: space.lg }}><Text style={type.body}>Nothing needs you right now. 🎉</Text></Card>
             )}
 
-            {nextTrip ? (
-              <Pressable
-                onPress={() => router.push(`/travel/${nextTrip.id}`)}
-                style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.mint, borderRadius: radius.lg,
-                  padding: space.lg, marginTop: space.md }}
-              >
-                <Feather name="navigation" size={18} color={colors.mintText} style={{ marginRight: space.md }} />
-                <Text style={[type.h3, { color: colors.mintText, flex: 1 }]}>
-                  {nextTrip.city ?? COUNTRY_NAMES[nextTrip.destination] ?? nextTrip.destination} trip: check if you're ready
-                </Text>
+            <Pressable
+              onPress={() => router.push("/home")}
+              accessibilityRole="button"
+              style={{ backgroundColor: colors.mint, borderRadius: radius.lg, padding: space.lg, marginTop: space.md }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontFamily: fonts.heading, fontSize: 18, color: colors.mintText }}>Home list</Text>
                 <Feather name="chevron-right" size={18} color={colors.mintText} />
-              </Pressable>
-            ) : (
-              <Pressable onPress={() => router.push("/travel")} style={{ marginTop: space.md }}>
-                <Text style={[type.h3, { color: colors.primary, fontSize: 14 }]}>Going somewhere? Check you're ready →</Text>
-              </Pressable>
-            )}
+              </View>
+              <Text style={[type.small, { color: colors.mintText, marginTop: 4 }]}>
+                {t.home.total
+                  ? `${t.home.total} thing${t.home.total > 1 ? "s" : ""} this week · Kitchen ${t.home.kitchen} · Medicines ${t.home.medicines} · Household ${t.home.household}`
+                  : "Food, medicines and household things"}
+              </Text>
+            </Pressable>
 
             <Card dark style={{ flexDirection: "row", alignItems: "center", marginTop: space.md }}>
               <ScoreRing score={t.score} />
@@ -113,6 +152,8 @@ export default function TimelineScreen() {
                 </Card>
               </>
             ) : null}
+
+            </>) : null}
 
             {!t.needs_you.length && !t.coming_up.length && !t.later.length ? (
               <Card style={{ marginTop: space.xl }}>

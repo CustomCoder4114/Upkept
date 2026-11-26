@@ -10,14 +10,12 @@ import { colors } from "../../src/theme/colors";
 import { space } from "../../src/theme/spacing";
 import { type } from "../../src/theme/typography";
 
-/** Suggested first three items, by country. */
-const FIRST_THREE: Record<string, { icon: "credit-card" | "globe" | "smartphone" | "shield"; title: string }[]> = {
-  KE: [
-    { icon: "credit-card", title: "National ID" },
-    { icon: "globe", title: "Passport" },
-    { icon: "shield", title: "Car or medical insurance" },
-  ],
-};
+/** Suggested first three items: things almost everyone, anywhere, has. */
+const FIRST_THREE: { icon: "credit-card" | "globe" | "shield"; title: string }[] = [
+  { icon: "credit-card", title: "National ID or driving licence" },
+  { icon: "globe", title: "Passport" },
+  { icon: "shield", title: "Insurance (car, health or home)" },
+];
 
 export default function Onboarding() {
   const [step, setStep] = useState<"who" | "three" | "notify">("who");
@@ -45,7 +43,7 @@ export default function Onboarding() {
         <Text style={[type.body, { color: colors.inkSoft, marginVertical: 12 }]}>
           Snap each one. We read the dates, and you check them.
         </Text>
-        {FIRST_THREE.KE.map((t) => (
+        {FIRST_THREE.map((t) => (
           <Card key={t.title} style={{ flexDirection: "row", alignItems: "center", marginBottom: space.sm, padding: space.lg }}>
             <Feather name={t.icon} size={20} color={colors.primary} style={{ marginRight: space.md }} />
             <Text style={type.h3}>{t.title}</Text>

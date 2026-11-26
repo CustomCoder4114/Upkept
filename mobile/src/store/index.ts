@@ -14,8 +14,12 @@ interface AppState {
   setLocked: (locked: boolean) => void;
 
   /** Hand-off from the camera screen to the "Is this right?" screen */
-  pendingScan: { photoUri: string; result: ScanResult; renewItemId?: string } | null;
+  pendingScan: { photoUri: string; photoBase64?: string; photoType?: string; result: ScanResult; renewItemId?: string } | null;
   setPendingScan: (s: AppState["pendingScan"]) => void;
+
+  /** Hand-off from the Home list camera (barcode / date) back to Quick add */
+  homeDraft: { name?: string; date?: string; message?: string };
+  setHomeDraft: (d: AppState["homeDraft"]) => void;
 }
 
 export const useApp = create<AppState>((set) => ({
@@ -25,4 +29,6 @@ export const useApp = create<AppState>((set) => ({
   setLocked: (locked) => set({ locked }),
   pendingScan: null,
   setPendingScan: (pendingScan) => set({ pendingScan }),
+  homeDraft: {},
+  setHomeDraft: (homeDraft) => set({ homeDraft }),
 }));

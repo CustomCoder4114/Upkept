@@ -71,8 +71,9 @@ export default function RootLayout() {
   // Tapping a reminder opens the item.
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const itemId = response.notification.request.content.data?.itemId;
-      if (typeof itemId === "string") router.push(`/item/${itemId}`);
+      const data = response.notification.request.content.data;
+      if (data?.screen === "home") router.push("/home");
+      else if (typeof data?.itemId === "string") router.push(`/item/${data.itemId}`);
     });
     return () => sub.remove();
   }, []);
@@ -87,6 +88,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
             <Stack.Screen name="add/scan" options={{ presentation: "fullScreenModal" }} />
             <Stack.Screen name="add/confirm" options={{ presentation: "fullScreenModal" }} />
+            <Stack.Screen name="home/camera" options={{ presentation: "fullScreenModal" }} />
           </Stack>
           {signedIn && lockEnabled && locked ? <LockOverlay /> : null}
         </View>

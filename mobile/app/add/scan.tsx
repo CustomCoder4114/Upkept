@@ -1,5 +1,6 @@
 /** Camera: snap a document, read its text on the phone, send only the text to the backend. */
 import { Feather } from "@expo/vector-icons";
+import type { ScanResult } from "@upkept/api-client";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
@@ -16,6 +17,14 @@ import { fonts, type } from "../../src/theme/typography";
 
 const EMPTY = { value: null, confidence: 0 };
 
+function emptyResult(warning?: string): ScanResult {
+  return {
+    kind: { value: "other", confidence: 0 }, category: { value: "personal", confidence: 0 },
+    title: EMPTY, issuer: EMPTY, number: EMPTY, starts_on: EMPTY, ends_on: EMPTY, amount: EMPTY, currency: EMPTY,
+    provider: "manual", warnings: warning ? [warning] : [], reminder_days: [30, 7, 1], ai_scans_left: null,
+  };
+}
+
 export default function ScanScreen() {
   const { renew } = useLocalSearchParams<{ renew?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
@@ -25,14 +34,19 @@ export default function ScanScreen() {
   const camera = useRef<CameraView>(null);
   const setPendingScan = useApp((s) => s.setPendingScan);
 
-  const handlePhoto = async (uri: string) => {
+  const handlePhoto = async (uri: string, base64?: string | null, mime?: string | null) => {
     setError(null);
     try {
       setBusy("Reading the text…");
-      const text = await readText(uri);
+      let text = "";
+      try {
+        text = await readText(uri);
+      } catch {
+        text = ""; // the phone couldn't read it: carry on, the person types the details
+      }
       setBusy("Finding the dates…");
-      const result = await api.scan(text);
-      setPendingScan({ photoUri: uri, result, renewItemId: renew });
+      const result = text.trim() ? await api.scan(text) : emptyResult("We couldn't read the text. Please fill in the details.");
+      setPendingScan({ photoUri: uri, photoBase64: base64 ?? undefined, photoType: mime ?? "image/jpeg", result, renewItemId: renew });
       router.replace("/add/confirm");
     } catch (e) {
       setError(e instanceof Error ? e.message : "We couldn't read that. Try again in better light.");
@@ -42,24 +56,20 @@ export default function ScanScreen() {
   };
 
   const snap = async () => {
-    const photo = await camera.current?.takePictureAsync({ quality: 0.8 });
-    if (photo?.uri) handlePhoto(photo.uri);
+    const photo = await camera.current?.takePictureAsync({ quality: 0.7, base64: true });
+    if (photo?.uri) handlePhoto(photo.uri, photo.base64, "image/jpeg");
   };
 
   const fromGallery = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
-    if (!res.canceled && res.assets[0]) handlePhoto(res.assets[0].uri);
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.7, base64: true });
+    if (!res.canceled && res.assets[0]) handlePhoto(res.assets[0].uri, res.assets[0].base64, res.assets[0].mimeType);
   };
 
   const typeIt = () => {
     setPendingScan({
       photoUri: "",
       renewItemId: renew,
-      result: {
-        kind: { value: "other", confidence: 0 }, category: { value: "personal", confidence: 0 },
-        title: EMPTY, issuer: EMPTY, number: EMPTY, starts_on: EMPTY, ends_on: EMPTY, amount: EMPTY, currency: EMPTY,
-        provider: "manual", warnings: [], reminder_days: [30, 7, 1], ai_scans_left: null,
-      },
+      result: emptyResult(),
     });
     router.replace("/add/confirm");
   };

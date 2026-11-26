@@ -45,7 +45,12 @@ export function parseDateInput(text: string): string | null {
   if (m) return valid(+m[1], +m[2], +m[3]);
   m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
   if (m) return valid(+m[3], +m[2], +m[1]);
-  m = t.match(/^(\d{1,2})\s+([A-Za-z]{3,})\.?,?\s+(\d{4})$/);
+  m = t.match(/^([A-Za-z]{3,})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/); // "December 24, 2026"
+  if (m) {
+    const month = MONTHS.findIndex((x) => x.toLowerCase() === m![1].slice(0, 3).toLowerCase());
+    if (month >= 0) return valid(+m[3], month + 1, +m[2]);
+  }
+  m = t.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,})\.?,?\s+(\d{4})$/);
   if (m) {
     const month = MONTHS.findIndex((x) => x.toLowerCase() === m![2].slice(0, 3).toLowerCase());
     return month >= 0 ? valid(+m[3], month + 1, +m[1]) : null;
@@ -82,4 +87,45 @@ export function greeting(now = new Date()): string {
 export const COUNTRY_NAMES: Record<string, string> = {
   KE: "Kenya", GB: "United Kingdom", US: "United States", TH: "Thailand", AE: "United Arab Emirates",
   UG: "Uganda", TZ: "Tanzania", RW: "Rwanda", NG: "Nigeria", ZA: "South Africa", AG: "Antigua and Barbuda",
+};
+
+/**
+ * Find the "use by" date in text read from a label: "EXP 12/2027", "BEST BEFORE 26.11.26",
+ * "USE BY 26 NOV 2026", "2026-11-26". Month-only dates mean the end of that month.
+ * Prefers a date right after an expiry word; otherwise the latest date found.
+ */
+export function findDateInText(text: string): string | null {
+  const t = text.toUpperCase().replace(/O(?=\d)|(?<=\d)O/g, "0"); // OCR often reads 0 as O
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const year = (y: number) => (y < 100 ? 2000 + y : y);
+  const make = (y: number, m: number, d: number) => {
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d && y >= 2000 && y <= 2100
+      ? `${y}-${pad(m)}-${pad(d)}` : null;
+  };
+  const endOfMonth = (y: number, m: number) => make(y, m, new Date(Date.UTC(y, m, 0)).getUTCDate());
+  const months = "JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC";
+  const found: { at: number; iso: string }[] = [];
+  const add = (at: number, iso: string | null) => { if (iso) found.push({ at, iso }); };
+
+  for (const m of t.matchAll(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/g)) add(m.index!, make(+m[1], +m[2], +m[3]));
+  for (const m of t.matchAll(/\b(\d{1,2})[-/. ](\d{1,2})[-/. ](\d{2,4})\b/g)) add(m.index!, make(year(+m[3]), +m[2], +m[1]));
+  for (const m of t.matchAll(new RegExp(`\\b(\\d{1,2})\\s*(${months})[A-Z]*\\.?\\s*(\\d{2,4})\\b`, "g"))) {
+    add(m.index!, make(year(+m[3]), months.split("|").indexOf(m[2]) + 1, +m[1]));
+  }
+  for (const m of t.matchAll(new RegExp(`\\b(${months})[A-Z]*\\.?\\s*(\\d{4})\\b`, "g"))) {
+    add(m.index!, endOfMonth(+m[2], months.split("|").indexOf(m[1]) + 1));
+  }
+  for (const m of t.matchAll(/(?<![\d/.-])(\d{1,2})[/.](\d{4})\b/g)) add(m.index!, endOfMonth(+m[2], +m[1]));
+  if (!found.length) return null;
+
+  const label = /(EXP|EXPIRY|EXPIRES|BEST BEFORE|BB|USE BY|USE BEFORE|BBE)\W{0,4}$/;
+  const labelled = found.filter((f) => label.test(t.slice(Math.max(0, f.at - 16), f.at)));
+  const pool = labelled.length ? labelled : found;
+  return pool.map((f) => f.iso).sort().at(-1)!;
+}
+
+export const LOCATION_LABELS: Record<string, string> = {
+  fridge: "Fridge", cupboard: "Cupboard", freezer: "Freezer", medicine_box: "Medicine box",
+  first_aid: "First-aid box", household: "Household",
 };

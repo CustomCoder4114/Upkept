@@ -20,6 +20,8 @@ class Document(IdMixin, TimestampMixin, Base):
     version: Mapped[int] = mapped_column(Integer, default=1)  # goes up after each renewal
     is_current: Mapped[bool] = mapped_column(Boolean, default=True)
     keep_offline: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Vault folder: identity, property, education, medical, money, vehicles, family, other
+    folder: Mapped[str] = mapped_column(String(16), default="other", server_default="other")
 
     item = relationship("Item", back_populates="documents")
 

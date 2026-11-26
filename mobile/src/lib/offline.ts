@@ -2,8 +2,11 @@
  * Offline vault: chosen documents kept on the phone in an ENCRYPTED SQLite
  * database (SQLCipher via op-sqlite; enabled in package.json "op-sqlite").
  * The database key is random, created once, and kept in secure storage.
+ *
+ * op-sqlite is loaded only when first used, so the rest of the app still
+ * opens if the native module is missing (e.g. in Expo Go).
  */
-import { open, type DB } from "@op-engineering/op-sqlite";
+import type { DB } from "@op-engineering/op-sqlite";
 import * as Crypto from "expo-crypto";
 
 import { getSecret, setSecret } from "./secure";
@@ -15,8 +18,23 @@ function toHex(bytes: Uint8Array) {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+export function offlineAvailable(): boolean {
+  try {
+    require("@op-engineering/op-sqlite");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function vault(): Promise<DB> {
   if (db) return db;
+  let open: typeof import("@op-engineering/op-sqlite").open;
+  try {
+    open = require("@op-engineering/op-sqlite").open;
+  } catch {
+    throw new Error("Offline copies need the Upkept app build, not Expo Go.");
+  }
   let key = await getSecret(KEY_NAME);
   if (!key) {
     key = toHex(Crypto.getRandomBytes(32));
@@ -47,6 +65,7 @@ export async function saveOffline(doc: Omit<OfflineDoc, "saved_at">) {
 }
 
 export async function listOffline(): Promise<Omit<OfflineDoc, "data_base64">[]> {
+  if (!offlineAvailable()) return [];
   const d = await vault();
   const res = await d.execute("SELECT id, title, content_type, saved_at FROM docs ORDER BY saved_at DESC");
   return res.rows as unknown as Omit<OfflineDoc, "data_base64">[];
@@ -63,8 +82,9 @@ export async function removeOffline(id: string) {
   await d.execute("DELETE FROM docs WHERE id = ?", [id]);
 }
 
-/** Used on sign-out and account deletion. */
+/** Used on sign-out and account deletion. Does nothing if offline storage isn't available. */
 export async function wipeOffline() {
+  if (!offlineAvailable()) return;
   const d = await vault();
   await d.execute("DELETE FROM docs");
 }

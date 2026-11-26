@@ -3,7 +3,9 @@ import { router } from "expo-router";
 import { Alert, Text, View } from "react-native";
 
 import { api } from "../src/api/client";
-import { useMe } from "../src/api/hooks";
+import { useMe, useUpdateMe } from "../src/api/hooks";
+import { CountryPicker } from "../src/components/CountryPicker";
+import { countryByCode } from "../src/lib/countries";
 import { Button, Card, CircleButton, Screen } from "../src/components/ui";
 import { enableNotifications } from "../src/lib/notifications";
 import { wipeOffline } from "../src/lib/offline";
@@ -12,6 +14,7 @@ import { type } from "../src/theme/typography";
 
 export default function SettingsScreen() {
   const me = useMe();
+  const update = useUpdateMe();
   const qc = useQueryClient();
 
   const signOut = async () => {
@@ -46,6 +49,14 @@ export default function SettingsScreen() {
           <Text style={type.h3}>{me.data.name}</Text>
           <Text style={type.small}>{me.data.email} · {me.data.plan === "free" ? "Free plan" : "Premium"}</Text>
         </Card>
+      ) : null}
+      {me.data ? (
+        <View style={{ marginBottom: space.lg }}>
+          <Text style={[type.small, { marginBottom: 6 }]}>Country and currency</Text>
+          <CountryPicker value={countryByCode(me.data.country)}
+            onChange={(c) => update.mutate({ country: c.code, currency: c.currency })} />
+          <Text style={type.small}>New bills use this currency. Items you've already added keep theirs.</Text>
+        </View>
       ) : null}
       <Button title="Turn on reminders / send a test" variant="outline"
         onPress={async () => { if (await enableNotifications()) await api.reminders.sendTest(); }} />

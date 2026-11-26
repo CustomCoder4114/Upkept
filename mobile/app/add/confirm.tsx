@@ -2,7 +2,7 @@
 import type { Category } from "@upkept/api-client";
 import { Redirect, router } from "expo-router";
 import { useMemo, useState } from "react";
-import { Image, ScrollView, Text, View } from "react-native";
+import { Alert, Image, ScrollView, Text, View, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { api } from "../../src/api/client";
@@ -10,6 +10,7 @@ import { useCreateItem, useMe, useProfiles, useRenewed } from "../../src/api/hoo
 import { ConfirmRow } from "../../src/components/TextField";
 import { Button, Card, Chip, ErrorNote } from "../../src/components/ui";
 import { longDate, parseAmountInput, parseDateInput } from "../../src/lib/format";
+import { folderForCategory } from "../../src/lib/folders";
 import { useApp } from "../../src/store";
 import { colors } from "../../src/theme/colors";
 import { radius, space } from "../../src/theme/spacing";
@@ -96,15 +97,24 @@ export default function ConfirmScreen() {
         });
         itemId = item.id;
       }
+      let photoSaved = true;
       if (scan.photoUri) {
-        await api.documents.upload({
-          file: { uri: scan.photoUri, name: "scan.jpg", type: "image/jpeg" },
-          profile_id: chosenProfile, item_id: itemId, title: docTitle(kind, startsIso, endsIso),
-          keep_offline: KEEP_OFFLINE_KINDS.has(kind),
-        });
+        try {
+          if (!scan.photoBase64) throw new Error("no photo data");
+          await api.documents.uploadBase64({
+            data_base64: scan.photoBase64, content_type: scan.photoType ?? "image/jpeg",
+            profile_id: chosenProfile, item_id: itemId, title: docTitle(kind, startsIso, endsIso),
+            keep_offline: KEEP_OFFLINE_KINDS.has(kind), folder: folderForCategory(kindInfo.category),
+          });
+        } catch {
+          photoSaved = false; // the item is saved either way; never save it twice
+        }
       }
       useApp.getState().setPendingScan(null);
       router.replace(`/item/${itemId}`);
+      if (!photoSaved) {
+        Alert.alert("Item saved", "The dates are saved, but the photo couldn't be stored yet. You can add it later.");
+      }
     } catch (e) {
       setError(e);
     } finally {
@@ -115,11 +125,12 @@ export default function ConfirmScreen() {
   const conf = (f: { confidence: number }) => (scan.photoUri ? f.confidence : undefined);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.dark }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.dark }} edges={["top", "bottom"]}>
       {scan.photoUri ? (
         <Image source={{ uri: scan.photoUri }} style={{ height: 150, margin: 20, borderRadius: 14 }} resizeMode="cover"
           accessibilityLabel="Your photo" />
       ) : <View style={{ height: 40 }} />}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <ScrollView style={{ backgroundColor: colors.background, borderTopLeftRadius: 28, borderTopRightRadius: 28 }}
         contentContainerStyle={{ padding: space.xl, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
         <Text style={type.title}>Is this right?</Text>
@@ -182,6 +193,7 @@ export default function ConfirmScreen() {
           <Text style={[type.small, { textAlign: "center", marginTop: space.md }]}>{r.ai_scans_left} free AI scans left this month</Text>
         ) : null}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

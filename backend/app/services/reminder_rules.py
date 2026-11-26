@@ -26,8 +26,21 @@ REMINDER_DAYS: dict[str, tuple[int, ...]] = {
     "domain": (60, 30, 7),
     "professional_licence": (90, 30, 7),
     "school_fees": (30, 7),
+    # Home list (food, medicines, household). These normally go in the morning
+    # summary; the numbers set the amber window (the largest) for colours.
+    "food": (3, 0),
+    "medicine": (30, 7),
+    "household_item": (14, 3),
 }
 DEFAULT_DAYS: tuple[int, ...] = (30, 7, 1)
+
+# Home list: the categories, their item kinds, and when an item turns red.
+HOME_CATEGORIES = frozenset({"kitchen", "medicines", "household"})
+HOME_KIND_FOR_CATEGORY = {"kitchen": "food", "medicines": "medicine", "household": "household_item"}
+RED_WITHIN: dict[str, int] = {"food": 1, "household_item": 3}  # everything else: 7 days
+# Only when the user turns on "Also alert me": days before the end date.
+HOME_ALERT_DAYS: dict[str, tuple[int, ...]] = {"food": (0,), "medicine": (7, 0), "household_item": (3,)}
+SUMMARY_WINDOW_DAYS = 7  # the morning summary covers the next week
 
 # Kinds that are a planned charge, not something expiring. Never shown in red.
 CHARGE_KINDS = frozenset({"subscription", "school_fees"})
@@ -45,14 +58,19 @@ def days_left(ends_on: date | None, today: date) -> int | None:
     return None if ends_on is None else (ends_on - today).days
 
 
-def planned_reminder_dates(kind: str, ends_on: date, today: date) -> list[tuple[date, int]]:
+def is_home(category: str) -> bool:
+    return category in HOME_CATEGORIES
+
+
+def planned_reminder_dates(kind: str, ends_on: date, today: date,
+                           days: tuple[int, ...] | None = None) -> list[tuple[date, int]]:
     """(send date, days before end) for every reminder still in the future.
 
     If every planned date has already passed but the item hasn't ended yet,
     remind today, so a late-added item still gets one warning.
     """
     out = []
-    for before in days_for(kind):
+    for before in days if days is not None else days_for(kind):
         when = ends_on - timedelta(days=before)
         if when >= today:
             out.append((when, before))
@@ -92,7 +110,7 @@ def urgency(kind: str, left: int | None) -> str:
         return "charge" if 0 <= left <= window else ("expired" if left < 0 else "green")
     if left < 0:
         return "expired"
-    if left <= 7:
+    if left <= RED_WITHIN.get(kind, 7):
         return "red"
     if left <= window:
         return "amber"

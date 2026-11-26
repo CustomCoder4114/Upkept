@@ -3,10 +3,10 @@ import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { Alert, Linking, Pressable, Text, View } from "react-native";
 
-import { useDocuments, useGuide, useItem, useMe, useUpdateItem } from "../../src/api/hooks";
+import { useAccounts, useDocuments, useGuide, useItem, useMe, useUpdateItem } from "../../src/api/hooks";
 import { ChecklistStep } from "../../src/components/ChecklistStep";
 import { StatusPill } from "../../src/components/DaysPill";
-import { Button, Card, CircleButton, ErrorNote, Loading, Screen } from "../../src/components/ui";
+import { Button, Card, Chip, CircleButton, ErrorNote, Loading, Screen } from "../../src/components/ui";
 import { breadcrumb, fallbackSteps } from "../../src/lib/checklists";
 import { progress, shortDate } from "../../src/lib/format";
 import { colors } from "../../src/theme/colors";
@@ -22,6 +22,7 @@ export default function ItemScreen() {
   const guide = useGuide(country, item.data?.kind.replace(/_/g, "-"));
   const docs = useDocuments({ item_id: id });
   const update = useUpdateItem(id);
+  const accounts = useAccounts();
 
   if (item.isLoading) return <Screen><Loading /></Screen>;
   if (item.error || !item.data) return <Screen><ErrorNote error={item.error} /></Screen>;
@@ -129,6 +130,19 @@ export default function ItemScreen() {
           </Pressable>
         ) : null}
       </Card>
+
+      {/* Which account pays it (bills only) */}
+      {it.amount_minor != null && accounts.data?.length ? (
+        <Card style={{ marginTop: space.lg, padding: space.lg }}>
+          <Text style={[type.small, { marginBottom: 8 }]}>Paid from</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 8 }}>
+            {accounts.data.map((a) => (
+              <Chip key={a.id} label={a.name} active={it.account_id === a.id}
+                onPress={() => update.mutate({ account_id: it.account_id === a.id ? null : a.id })} />
+            ))}
+          </View>
+        </Card>
+      ) : null}
 
       {/* Stored document */}
       {currentDoc ? (

@@ -2,7 +2,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import BigInteger, Date, ForeignKey, LargeBinary, String, Text
+from sqlalchemy import BigInteger, Boolean, Date, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin
@@ -10,6 +10,7 @@ from app.models.base import Base, IdMixin, TimestampMixin
 CATEGORIES = (
     "identity", "travel", "vehicles", "home", "insurance", "health",
     "money", "work", "school", "purchases", "digital", "personal",
+    "kitchen", "medicines", "household",  # the Home list
 )
 STATUSES = ("active", "renewing", "not_renewing", "archived")
 RECURRENCES = ("none", "monthly", "yearly")
@@ -41,6 +42,19 @@ class Item(IdMixin, TimestampMixin, Base):
     notes: Mapped[str | None] = mapped_column(Text)
     # Ticked steps of the "Get it done" checklist, e.g. "compare-quotes,renew"
     checklist_done: Mapped[str] = mapped_column(String(500), default="")
+
+    # Home list only
+    location: Mapped[str | None] = mapped_column(String(32))  # fridge, cupboard, freezer, medicine_box...
+    quantity: Mapped[str | None] = mapped_column(String(60))  # "2 kg", "4 cups", "about half a pack"
+    alert_each: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    cycle_days: Mapped[int | None] = mapped_column(Integer)  # refills: estimated days one lasts
+
+    # Subscriptions planner: keep | review | cancel (None = not decided)
+    plan_decision: Mapped[str | None] = mapped_column(String(8))
+    # Money tab "Where it goes": rent, utilities, internet_phone, entertainment, fitness, school, insurance, other
+    spend_group: Mapped[str | None] = mapped_column(String(24))
+    # Which account pays this bill (optional, for the money plan)
+    account_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("accounts.id", ondelete="SET NULL"))
 
     profile = relationship("Profile", back_populates="items")
     documents = relationship("Document", back_populates="item")

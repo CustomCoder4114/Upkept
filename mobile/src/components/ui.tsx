@@ -1,7 +1,7 @@
 /** Small building blocks used on every screen. */
 import { Feather } from "@expo/vector-icons";
 import type { ComponentProps, ReactNode } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors } from "../theme/colors";
@@ -10,18 +10,36 @@ import { type } from "../theme/typography";
 
 export type IconName = ComponentProps<typeof Feather>["name"];
 
-export function Screen({ children, scroll = true, dark = false }: { children: ReactNode; scroll?: boolean; dark?: boolean }) {
+/** bottomSafe: true for screens outside the tab bar, so content isn't under the phone's navigation buttons. */
+export function Screen({ children, scroll = true, dark = false, bottomSafe = true }: {
+  children: ReactNode; scroll?: boolean; dark?: boolean; bottomSafe?: boolean;
+}) {
   const bg = dark ? colors.dark : colors.background;
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={bottomSafe ? ["top", "bottom"] : ["top"]}>
+      <KeyboardScroll scroll={scroll}>{children}</KeyboardScroll>
+    </SafeAreaView>
+  );
+}
+
+/**
+ * Moves content up when the keyboard opens, so the box being typed in stays visible.
+ * Use it for every screen with text boxes (Screen already does).
+ */
+export function KeyboardScroll({ children, scroll = true, contentStyle }: {
+  children: ReactNode; scroll?: boolean; contentStyle?: ViewStyle;
+}) {
+  return (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       {scroll ? (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={[styles.content, contentStyle]} keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.content, { flex: 1 }]}>{children}</View>
+        <View style={[styles.content, { flex: 1 }, contentStyle]}>{children}</View>
       )}
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

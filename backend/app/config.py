@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     s3_access_key_id: str | None = None
     s3_secret_access_key: str | None = None
     s3_region: str = "auto"
+    # Used when the S3 settings above are empty: encrypted files are kept in this folder.
+    local_storage_dir: str = "/data/files"
 
     ai_provider: str = "rules"  # rules | anthropic
     anthropic_api_key: str | None = None

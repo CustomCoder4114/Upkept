@@ -10,7 +10,7 @@ COPY backend/ /srv/
 COPY content/ /content/
 ENV CONTENT_DIR=/content
 
-RUN useradd --create-home upkept
+RUN useradd --create-home upkept && mkdir -p /data/files && chown -R upkept /data
 USER upkept
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

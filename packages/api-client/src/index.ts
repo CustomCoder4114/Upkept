@@ -3,8 +3,8 @@
  * Handles the login token and refreshes it once when it expires.
  */
 import type {
-  DocumentMeta, Guide, Item, ItemIn, ItemPatch, MoneySummary, Profile, ProfileIn, RegisterIn, Reminder,
-  ScanResult, Timeline, Tokens, Trip, TripCheck, TripIn, User,
+  Account, AccountIn, CalendarMonth, Folder, MoneyPlan, DocumentMeta, EmergencyPerson, FamilyOverview, MoneyOverview, Guide, HomeList, Item, ItemIn, ItemPatch, MoneySummary, Profile, ProfileIn, RegisterIn, Reminder,
+  ScanResult, Subscriptions, Timeline, Tokens, Trip, TripCheck, TripIn, User, UserPatch,
 } from "./types";
 
 export * from "./types";
@@ -102,6 +102,7 @@ export function createApi({ baseUrl, tokens, onSignedOut }: ApiOptions) {
         await tokens.set(null);
       },
       me: () => get<User>("/auth/me"),
+      updateMe: (b: UserPatch) => patch<User>("/auth/me", b),
       deleteAccount: async () => {
         await del("/auth/me");
         await tokens.set(null);
@@ -120,20 +121,26 @@ export function createApi({ baseUrl, tokens, onSignedOut }: ApiOptions) {
       update: (id: string, b: ItemPatch) => patch<Item>(`/items/${id}`, b),
       renewed: (id: string, b: { ends_on: string; starts_on?: string; amount_minor?: number; number?: string }) =>
         post<Item>(`/items/${id}/renewed`, b),
+      refilled: (id: string, cycleDays?: number) => post<Item>(`/items/${id}/refilled`, { cycle_days: cycleDays ?? null }),
       revealNumber: (id: string) => get<{ number: string | null }>(`/items/${id}/number`),
       remove: (id: string) => del(`/items/${id}`),
     },
     documents: {
-      list: (p: { profile_id?: string; item_id?: string } = {}) => get<DocumentMeta[]>(`/documents${qs(p)}`),
-      upload(f: { file: UploadFile; profile_id: string; item_id?: string; title?: string; keep_offline?: boolean }) {
+      list: (p: { profile_id?: string; item_id?: string; folder?: Folder } = {}) => get<DocumentMeta[]>(`/documents${qs(p)}`),
+      update: (id: string, b: { title?: string; folder?: Folder; keep_offline?: boolean }) => patch<DocumentMeta>(`/documents/${id}`, b),
+      upload(f: { file: UploadFile; profile_id: string; item_id?: string; title?: string; keep_offline?: boolean; folder?: Folder }) {
         const form = new FormData();
         form.append("file", f.file as Blob);
         form.append("profile_id", f.profile_id);
         if (f.item_id) form.append("item_id", f.item_id);
         form.append("title", f.title ?? "Document");
         form.append("keep_offline", String(!!f.keep_offline));
+        if (f.folder) form.append("folder", f.folder);
         return request<DocumentMeta>("POST", "/documents", form);
       },
+      /** Phone app: the photo as base64 text. Works with every fetch, unlike multipart file parts. */
+      uploadBase64: (f: { data_base64: string; content_type: string; profile_id: string; item_id?: string; title?: string;
+        keep_offline?: boolean; folder?: Folder }) => post<DocumentMeta>("/documents/base64", f),
       fileUrl: (id: string) => `${baseUrl}/documents/${id}/file`,
       remove: (id: string) => del(`/documents/${id}`),
     },
@@ -158,6 +165,22 @@ export function createApi({ baseUrl, tokens, onSignedOut }: ApiOptions) {
       remove: (id: string) => del(`/trips/${id}`),
     },
     money: () => get<MoneySummary>("/money/summary"),
+    accounts: {
+      list: () => get<Account[]>("/accounts"),
+      create: (b: AccountIn) => post<Account>("/accounts", b),
+      update: (id: string, b: Partial<AccountIn>) => patch<Account>(`/accounts/${id}`, b),
+      remove: (id: string) => del(`/accounts/${id}`),
+    },
+    moneyPlan: () => get<MoneyPlan>("/money/plan"),
+    moneyOverview: () => get<MoneyOverview>("/money/overview"),
+    family: () => get<FamilyOverview>("/family"),
+    emergency: () => get<EmergencyPerson[]>("/family/emergency"),
+    subscriptions: () => get<Subscriptions>("/subscriptions"),
+    calendar: (month: string, profileId?: string) => get<CalendarMonth>(`/calendar${qs({ month, profile_id: profileId })}`),
+    home: {
+      list: (profileId?: string) => get<HomeList>(`/home${qs({ profile_id: profileId })}`),
+      recent: () => get<string[]>("/home/recent"),
+    },
   };
 }
 

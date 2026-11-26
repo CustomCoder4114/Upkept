@@ -5,9 +5,9 @@ to send it on one channel. The unique constraint on (reminder_id, channel) is
 what guarantees a worker restart never sends the same reminder twice.
 """
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TimestampMixin
@@ -43,3 +43,15 @@ class ReminderDelivery(IdMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     reminder = relationship("Reminder", back_populates="deliveries")
+
+
+class DailySummary(IdMixin, Base):
+    """One row per user per day the Home list summary went out: never sent twice."""
+
+    __tablename__ = "daily_summaries"
+    __table_args__ = (UniqueConstraint("user_id", "day", name="uq_one_summary_per_day"),)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    day: Mapped[date] = mapped_column(Date)
+    item_count: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

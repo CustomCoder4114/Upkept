@@ -13,6 +13,12 @@ celery.conf.update(
         "send-due-reminders": {"task": "app.workers.tasks.send_due_reminders", "schedule": 300.0},
         "escalate-ignored-reminders": {"task": "app.workers.tasks.escalate_ignored",
                                        "schedule": crontab(minute=15, hour="*/6")},
+        # Hourly: sends the Home list summary to users whose local time is their summary hour.
+        "home-morning-summary": {"task": "app.workers.tasks.home_morning_summaries",
+                                 "schedule": crontab(minute=0)},
+        # Daily: subscription charges that have passed move to their next charge date.
+        "roll-recurring-charges": {"task": "app.workers.tasks.roll_recurring_charges",
+                                   "schedule": crontab(minute=30, hour=0)},
         "weekly-due-soon-summary": {"task": "app.workers.tasks.weekly_summary",
                                     "schedule": crontab(minute=0, hour=5, day_of_week="mon")},
     },

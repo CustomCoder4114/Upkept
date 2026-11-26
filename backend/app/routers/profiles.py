@@ -12,6 +12,8 @@ from app.schemas import ProfileIn, ProfileOut
 router = APIRouter(prefix="/profiles", tags=["profiles"])
 
 FREE_PLAN_PROFILES = 1  # plan: free = 1 profile; Premium adds family profiles
+FAMILY_LIMIT_ON = False  # switch on when Premium billing launches
+MAX_PROFILES = 12  # you + 11 people, a sanity limit
 
 
 @router.get("", response_model=list[ProfileOut])
@@ -23,8 +25,11 @@ def list_profiles(user: User = Depends(current_user), db: Session = Depends(get_
 @router.post("", response_model=ProfileOut, status_code=201)
 def create_profile(body: ProfileIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     owned = db.scalars(select(Profile.id).where(Profile.owner_id == user.id)).all()
-    if user.plan == "free" and len(owned) >= FREE_PLAN_PROFILES:
+    # Free for everyone until Premium billing exists; then turn this limit back on.
+    if FAMILY_LIMIT_ON and user.plan == "free" and len(owned) >= FREE_PLAN_PROFILES:
         raise HTTPException(402, "Family profiles are part of Premium")
+    if len(owned) >= MAX_PROFILES:
+        raise HTTPException(400, f"You can add up to {MAX_PROFILES - 1} family members")
     profile = Profile(owner_id=user.id, **body.model_dump())
     db.add(profile)
     db.flush()

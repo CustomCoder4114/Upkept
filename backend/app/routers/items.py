@@ -9,9 +9,10 @@ from app.core.crypto import get_keyring, last4
 from app.database import get_db
 from app.deps import accessible_profile_ids, current_user, get_item, get_profile
 from app.models import Document, Item, Reminder, User
-from app.schemas import ItemIn, ItemOut, ItemPatch, RenewedIn, Suggestion, TimelineOut
+from app.schemas import HomeCounts, ItemIn, ItemOut, ItemPatch, RenewedIn, Suggestion, TimelineOut
 from app.services import reminder_scheduler
-from app.services.reminder_rules import days_left, planned_reminder_dates, timeline_bucket, urgency
+from app.services.reminder_rules import (HOME_ALERT_DAYS, SUMMARY_WINDOW_DAYS, days_left, is_home,
+                                         planned_reminder_dates, timeline_bucket, urgency)
 from app.services.score import ScoreInput, life_in_order
 
 router = APIRouter(tags=["items"])
@@ -34,13 +35,27 @@ def item_out(item: Item, today: date) -> ItemOut:
         starts_on=item.starts_on, ends_on=item.ends_on, amount_minor=item.amount_minor, currency=item.currency,
         recurrence=item.recurrence, status=item.status, notes=item.notes,
         checklist_done=[s for s in (item.checklist_done or "").split(",") if s],
+        location=item.location, quantity=item.quantity, alert_each=bool(item.alert_each),
+        cycle_days=item.cycle_days, is_home=is_home(item.category),
+        plan_decision=item.plan_decision, spend_group=item.spend_group, account_id=item.account_id,
     )
     out.days_left = left
     out.urgency = urgency(item.kind, left)
     out.bucket = timeline_bucket(item.kind, left)
-    if item.ends_on:
-        out.reminder_dates = [d for d, _ in planned_reminder_dates(item.kind, item.ends_on, today)]
+    if item.ends_on and not (out.is_home and not item.alert_each):
+        days = HOME_ALERT_DAYS.get(item.kind, (0,)) if out.is_home else None
+        out.reminder_dates = [d for d, _ in planned_reminder_dates(item.kind, item.ends_on, today, days)]
     return out
+
+
+def _check_account(db: Session, user: User, account_id) -> None:
+    if account_id is not None:
+        from app.models import Account
+
+        if db.scalar(select(Account.id).where(Account.id == account_id, Account.user_id == user.id)) is None:
+            from fastapi import HTTPException
+
+            raise HTTPException(404, "Account not found")
 
 
 def _set_number(item: Item, number: str | None) -> None:
@@ -58,7 +73,15 @@ def timeline(profile_id: uuid.UUID | None = None, user: User = Depends(current_u
     q = select(Item).where(Item.profile_id.in_(accessible_profile_ids(db, user)), Item.status != "archived")
     if profile_id:
         q = q.where(Item.profile_id == profile_id)
-    items = [item_out(i, today) for i in db.scalars(q)]
+    rows = list(db.scalars(q))
+    reminder_scheduler.roll_recurring(db, rows, today)  # passed subscription charges move to the next one
+    everything = [item_out(i, today) for i in rows]
+    home = HomeCounts()
+    for i in everything:
+        if i.is_home and i.days_left is not None and i.days_left <= SUMMARY_WINDOW_DAYS:
+            setattr(home, i.category, getattr(home, i.category) + 1)
+            home.total += 1
+    items = [i for i in everything if not i.is_home]  # the Home list has its own screen
     items.sort(key=lambda i: (i.days_left is None, i.days_left if i.days_left is not None else 0))
 
     # On-time ratio: reminders the user acted on before the item's end date.
@@ -73,7 +96,7 @@ def timeline(profile_id: uuid.UUID | None = None, user: User = Depends(current_u
     buckets: dict[str, list[ItemOut]] = {"needs_you": [], "coming_up": [], "later": [], "undated": []}
     for i in items:
         buckets[i.bucket].append(i)
-    return TimelineOut(score=score, suggestions=[Suggestion(text=s.text, points=s.points) for s in suggestions[:3]],
+    return TimelineOut(home=home, score=score, suggestions=[Suggestion(text=s.text, points=s.points) for s in suggestions[:3]],
                        **buckets)
 
 
@@ -96,6 +119,7 @@ def list_items(profile_id: uuid.UUID | None = None, category: str | None = None,
 @router.post("/items", response_model=ItemOut, status_code=201)
 def create_item(body: ItemIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
     get_profile(db, user, body.profile_id, edit=True)
+    _check_account(db, user, body.account_id)
     data = body.model_dump(exclude={"number"})
     item = Item(id=uuid.uuid4(), **data)
     _set_number(item, body.number)
@@ -124,13 +148,15 @@ def update_item(item_id: uuid.UUID, body: ItemPatch, user: User = Depends(curren
                 db: Session = Depends(get_db)):
     item = get_item(db, user, item_id, edit=True)
     data = body.model_dump(exclude_unset=True)
+    if "account_id" in data:
+        _check_account(db, user, data["account_id"])
     if "number" in data:
         _set_number(item, data.pop("number") or "")
     if "checklist_done" in data:
         item.checklist_done = ",".join(data.pop("checklist_done") or [])
     for k, v in data.items():
         setattr(item, k, v)
-    if {"ends_on", "status"} & data.keys():
+    if {"ends_on", "status", "alert_each"} & data.keys():
         reminder_scheduler.reschedule(db, item, today_for(user))
     return item_out(item, today_for(user))
 
